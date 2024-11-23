@@ -13,8 +13,12 @@ func NewSongService(r repository.Song) *SongService {
 	return &SongService{repo: r}
 }
 
-func (r *SongService) Create(groupName string, songName string, s domain.Song) (int, error) {
-	return r.repo.Create(groupName, songName, s)
+func (r *SongService) Create(s domain.SongList) (int, error) {
+	return r.repo.Create(s)
+}
+
+func (r *SongService) GetSongsList(s domain.PaginatedSongInput) ([]domain.SongOutput, error) {
+	return r.repo.GetSongsList(s)
 }
 
 // func (r *RemindService) GetByID(userID int, remindID int) (domain.Remind, error) {

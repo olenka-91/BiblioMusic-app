@@ -16,15 +16,11 @@ func NewHandler(serv *service.Service) *Handler {
 func (h *Handler) InitRoutes() *gin.Engine {
 	router := gin.New()
 
-	song := router.Group("/info")
-	{
-		song.POST("/group/:groupName/song/:songName", h.createSong)
-		// song.POST("/", h.createSong)
-		// song.GET("/", h.getAllReminds)
-		// song.GET("/:id", h.getRemindByID)
-		// song.PUT("/:id", h.updateRemind)
-		// song.DELETE("/:id", h.deleteRemind)
-	}
+	router.POST("/song", h.createSong)
+	router.GET("/info", h.getSongsList)
+	//router.GET("/songs/:id/verses", h.getSongText)
+	//router.PATCH("/songs/:id", h.updateSong)
+	//router.DELETE("/songs/:id", h.deleteSong)
 
 	return router
 

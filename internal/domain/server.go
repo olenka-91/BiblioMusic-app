@@ -45,19 +45,24 @@ func (s *Server) runMigrations(db *sqlx.DB) error {
 
 	// Создаем экземпляр миграции
 	m, err := migrate.NewWithDatabaseInstance(
-		"./schema", // Путь к миграциям на диске
-		"postgres", // Тип базы данных (например, postgres)
-		driver,     // Драйвер базы данных
+		"file://./schema", // Путь к миграциям на диске
+		"postgres",        // Тип базы данных (например, postgres)
+		driver,            // Драйвер базы данных
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create migrate instance: %w", err)
 	}
 
 	// Выполняем миграции
-	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
-		return fmt.Errorf("failed to apply migrations: %w", err)
+	if err := m.Up(); err != nil {
+		if err == migrate.ErrNoChange {
+			log.Println("Миграции не требуются: нет новых изменений.")
+		} else {
+			log.Fatalf("Ошибка при применении миграций: %v", err)
+		}
+	} else {
+		log.Println("Миграции успешно применены.")
 	}
 
-	log.Println("Migrations applied successfully.")
 	return nil
 }

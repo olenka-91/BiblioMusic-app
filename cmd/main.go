@@ -6,10 +6,12 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/joho/godotenv"
 	"github.com/olenka-91/BIBLIOMUSIC-APP/internal/domain"
 	"github.com/olenka-91/BIBLIOMUSIC-APP/internal/handler"
 	"github.com/olenka-91/BIBLIOMUSIC-APP/internal/repository"
 	"github.com/olenka-91/BIBLIOMUSIC-APP/internal/service"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -20,12 +22,15 @@ func init() {
 }
 
 func main() {
+	if err := godotenv.Load(); err != nil {
+		log.Fatalf("error loading env variables: %s", err.Error())
+	}
 	db, err := repository.NewPostgresDB(repository.Config{
 		Host:     os.Getenv("DB_HOST"),
 		Port:     os.Getenv("DB_PORT"),
 		Username: os.Getenv("DB_USERNAME"),
 		Password: os.Getenv("DB_PASSWORD"),
-		DBName:   os.Getenv("BD_NAME"),
+		DBName:   os.Getenv("DB_NAME"),
 		SSLMode:  os.Getenv("DB_SSLMODE"),
 	})
 	if err != nil {

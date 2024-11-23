@@ -1,8 +1,11 @@
 package repository
 
 import (
+	"fmt"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/olenka-91/BIBLIOMUSIC-APP/internal/domain"
+	"github.com/sirupsen/logrus"
 )
 
 type SongPostgres struct {
@@ -13,22 +16,77 @@ func NewSongPostgres(db *sqlx.DB) *SongPostgres {
 	return &SongPostgres{db: db}
 }
 
-func (r *SongPostgres) Create(groupName string, songName string, s domain.Song) (int, error) {
-	// tx, err := r.db.Begin()
-	// if err != nil {
-	// 	return 0, nil
-	// }
+func (r *SongPostgres) Create(s domain.SongList) (int, error) {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return 0, err
+	}
 
-	// queryString := fmt.Sprintf("INSERT INTO %s (user_id, title, msg, remind_date) VALUES ($1,$2,$3,$4) RETURNING id", remindTable)
-	// row := tx.QueryRow(queryString, userID, rem.Title, rem.Msg, rem.RemindDate)
-	// var id int
-	// if err := row.Scan(&id); err != nil {
-	// 	tx.Rollback()
-	// 	return 0, err
-	// }
+	queryString := fmt.Sprintf("INSERT INTO %s (name) VALUES ($1) RETURNING id", groupTable)
+	row := tx.QueryRow(queryString, s.Group)
+	var GroupId int
+	if err := row.Scan(&GroupId); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
 
-	// return id, tx.Commit()
-	return 0, nil
+	queryString = fmt.Sprintf("INSERT INTO %s (group_id, title) VALUES ($1,$2) RETURNING id", songTable)
+	row = tx.QueryRow(queryString, GroupId, s.Song)
+	var SongId int
+	if err := row.Scan(&SongId); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	return SongId, tx.Commit()
+}
+
+func (r *SongPostgres) GetSongsList(s domain.PaginatedSongInput) ([]domain.SongOutput, error) {
+	offset := (s.Page - 1) * s.PageSize
+	//	queryString := fmt.Sprintf("SELECT %s.name as group_name, title, release_date as , text, link FROM %s INNER JOIN %s ON %s.id=%s.group_id WHERE group_name LIKE $1 AND title LIKE $2 LIMIT $3 OFFSET $4",
+	//	groupTable, songTable, groupTable, groupTable, songTable)
+
+	queryString := fmt.Sprintf(`SELECT %s.name as GroupName, title, release_date as ReleaseDate, text, link FROM %s 
+								INNER JOIN %s ON %s.id=%s.group_id
+								WHERE %s.name LIKE $1 
+								AND title LIKE $2
+								AND release_date LIKE $3
+								AND text LIKE $4
+								AND link LIKE $5
+								LIMIT $6 OFFSET $7`,
+		groupTable, songTable, groupTable, groupTable, songTable, groupTable)
+
+	logrus.Debug("queryString=", queryString, "%"+s.GroupName+"%", "%"+s.Title+"%", s.PageSize, "offset=", offset)
+
+	//err := r.db.Select(&songs, queryString, "%"+s.GroupName+"%", "%"+s.Title+"%", s.PageSize, offset)
+	//err := r.db.Select(&songs, queryString)
+	//if err != nil {
+	//	return nil, err
+	//}
+	rows, err := r.db.Query(queryString,
+		"%"+s.GroupName+"%",
+		"%"+s.Title+"%",
+		"%"+s.ReleaseDate+"%",
+		"%"+s.Text+"%",
+		"%"+s.Link+"%",
+		s.PageSize,
+		offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var songs []domain.SongOutput
+	for rows.Next() {
+		var s domain.SongOutput
+		if err := rows.Scan(&s.GroupName, &s.Title, &s.ReleaseDate, &s.Text, &s.Link); err != nil {
+			logrus.Println("Error scanning row:", err)
+			continue
+		}
+		songs = append(songs, s)
+	}
+
+	return songs, nil
 }
 
 // func (r *RemindPostgres) GetByID(userID int, remindID int) (domain.Remind, error) {
