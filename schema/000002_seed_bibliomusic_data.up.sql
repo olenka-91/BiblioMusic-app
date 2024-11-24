@@ -8,8 +8,8 @@ INSERT INTO songs (group_id, title, text, release_date, link) VALUES
   
     (1, 'Supermassive Black Hole', ' Ooh baby, don''t you know I suffer?\nOoh baby, can you hear me moan?\nYou caught me under false pretenses\nHow long before you let me go?\n\nOoh\nYou set my soul alight\nOoh\nYou set my soul alight', 
                       '16.07.2006', 'https://www.youtube.com/watch?v=Xsp3_a-PMTw'),
-    (1, 'Uprising', 'The time has come to say goodbye.\n\nThey will not stop us, they will never break us', 
-                      '2009-09-14', 'http://example.com/uprising'),
+    (1, 'Uprising', 'Paranoia is in bloom\\nThe PR transmissions will resume\\nThey''ll try to push drugs that keep us all dumbed down\\nAnd hope that we will never see the truth around\\n\\nAnother promise, another seed\\nAnother packaged lie to keep us trapped in greed\\nAnd all the green belts wrapped around our minds\\nAnd endless red tape to keep the truth confined\\n', 
+                      '14.09.2009', 'https://www.youtube.com/watch?v=w8KQmps-Sog'),
     
     
     (2, 'Hey Jude', 'Hey Jude, don\''t make it bad.\n\nRemember to let her into your heart', 

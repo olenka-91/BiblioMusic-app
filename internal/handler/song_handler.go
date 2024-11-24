@@ -13,15 +13,55 @@ func (h *Handler) createSong(ctx *gin.Context) {
 	var input domain.SongList
 	if err := ctx.BindJSON(&input); err != nil {
 		newErrorResponce(ctx, http.StatusBadRequest, "Bad request")
+		return
 	}
 
 	id, err := h.services.Song.Create(input)
 	if err != nil {
 		newErrorResponce(ctx, http.StatusInternalServerError, err.Error()) //"Internal server error")
+		return
 	}
 
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"id": id,
+	})
+}
+func (h *Handler) deleteSong(ctx *gin.Context) {
+	songId, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		newErrorResponce(ctx, http.StatusBadRequest, "Bad request")
+		return
+	}
+
+	err = h.services.Song.Delete(songId)
+	if err != nil {
+		newErrorResponce(ctx, http.StatusInternalServerError, err.Error()) //"Internal server error")
+		return
+	}
+	ctx.JSON(http.StatusOK, map[string]interface{}{
+		"Status": "OK",
+	})
+}
+func (h *Handler) updateSong(ctx *gin.Context) {
+	songId, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		newErrorResponce(ctx, http.StatusBadRequest, "Bad request")
+		return
+	}
+	var input domain.SongUpdateInput
+	if err := ctx.BindJSON(&input); err != nil {
+		newErrorResponce(ctx, http.StatusBadRequest, "Bad request")
+		return
+	}
+
+	err = h.services.Song.Update(songId, input)
+	if err != nil {
+		newErrorResponce(ctx, http.StatusInternalServerError, err.Error()) //"Internal server error")
+		return
+	}
+
+	ctx.JSON(http.StatusOK, map[string]interface{}{
+		"Status": "OK",
 	})
 }
 

@@ -11,7 +11,7 @@ import (
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jmoiron/sqlx"
-	_ "github.com/lib/pq" // Импортируем драйвер для PostgreSQL (или другого)
+	_ "github.com/lib/pq"
 )
 
 type Server struct {
@@ -56,12 +56,12 @@ func (s *Server) runMigrations(db *sqlx.DB) error {
 	// Выполняем миграции
 	if err := m.Up(); err != nil {
 		if err == migrate.ErrNoChange {
-			log.Println("Миграции не требуются: нет новых изменений.")
+			log.Println("Migrations don't needed: no changes.")
 		} else {
-			log.Fatalf("Ошибка при применении миграций: %v", err)
+			log.Fatalf("Maigrations failed: %v", err)
 		}
 	} else {
-		log.Println("Миграции успешно применены.")
+		log.Println("Migrations applied successfully")
 	}
 
 	return nil

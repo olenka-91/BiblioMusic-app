@@ -25,19 +25,13 @@ func (r *SongService) GetSongText(s domain.PaginatedSongTextInput) (domain.Pagin
 	return r.repo.GetSongText(s)
 }
 
-// func (r *RemindService) GetByID(userID int, remindID int) (domain.Remind, error) {
-// 	return r.repo.GetByID(userID, remindID)
-// }
-// func (r *RemindService) GetAll(userID int) ([]domain.Remind, error) {
-// 	return r.repo.GetAll(userID)
-// }
-// func (r *RemindService) Delete(userID, remindID int) error {
-// 	return r.repo.Delete(userID, remindID)
-// }
-// func (r *RemindService) Update(userID, remindID int, input domain.RemindUpdateInput) error {
-// 	if err := input.Validate(); err != nil {
-// 		return err
-// 	}
-// 	return r.repo.Update(userID, remindID, input)
+func (r *SongService) Delete(songID int) error {
+	return r.repo.Delete(songID)
+}
 
-// }
+func (r *SongService) Update(songID int, input domain.SongUpdateInput) error {
+	if err := input.Validate(); err != nil {
+		return err
+	}
+	return r.repo.Update(songID, input)
+}

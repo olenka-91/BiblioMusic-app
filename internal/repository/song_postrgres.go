@@ -118,60 +118,49 @@ func (r *SongPostgres) GetSongText(s domain.PaginatedSongTextInput) (domain.Pagi
 	return response, nil
 }
 
-// func (r *RemindPostgres) GetByID(userID int, remindID int) (domain.Remind, error) {
-// 	var rem domain.Remind
-// 	queryString := fmt.Sprintf("SELECT t.id, t.title, t.msg, t.remind_date as RemindDate FROM %s t WHERE t.id=$1 and t.user_id=$2", remindTable)
-// 	err := r.db.Get(&rem, queryString, remindID, userID)
+func (r *SongPostgres) Delete(songID int) error {
+	queryString := fmt.Sprintf("DELETE FROM %s t WHERE t.id=$1", songTable)
+	_, err := r.db.Exec(queryString, songID)
+	return err
+}
 
-// 	return rem, err
-// }
+func (r *SongPostgres) Update(songID int, input domain.SongUpdateInput) error {
+	setValues := make([]string, 0)
+	args := make([]interface{}, 0)
+	argIDs := 1
 
-// func (r *RemindPostgres) GetAll(userID int) ([]domain.Remind, error) {
-// 	var rem []domain.Remind
-// 	queryString := fmt.Sprintf("SELECT t.id, t.title, t.msg, t.remind_date as RemindDate FROM %s t WHERE t.user_id=$1", remindTable)
-// 	//logrus.Debug("queryString=", queryString, " userID=", userID)
-// 	err := r.db.Select(&rem, queryString, userID)
+	if input.Title != nil {
+		setValues = append(setValues, fmt.Sprintf("title=$%d", argIDs))
+		args = append(args, *input.Title)
+		argIDs++
+	}
 
-// 	return rem, err
-// }
+	if input.Text != nil {
+		setValues = append(setValues, fmt.Sprintf("text=$%d", argIDs))
+		args = append(args, *input.Text)
+		argIDs++
+	}
 
-// func (r *RemindPostgres) Delete(userID, remindID int) error {
-// 	queryString := fmt.Sprintf("DELETE FROM %s t WHERE t.id=$1 and t.user_id=$2", remindTable)
-// 	_, err := r.db.Exec(queryString, remindID, userID)
-// 	return err
-// }
+	if input.ReleaseDate != nil {
+		setValues = append(setValues, fmt.Sprintf("release_date=$%d", argIDs))
+		args = append(args, *input.ReleaseDate)
+		argIDs++
+	}
 
-// func (r *RemindPostgres) Update(userID, remindID int, input domain.RemindUpdateInput) error {
-// 	setValues := make([]string, 0)
-// 	args := make([]interface{}, 0)
-// 	argIDs := 1
+	if input.Link != nil {
+		setValues = append(setValues, fmt.Sprintf("link=$%d", argIDs))
+		args = append(args, *input.Link)
+		argIDs++
+	}
 
-// 	if input.Title != nil {
-// 		setValues = append(setValues, fmt.Sprintf("title=$%d", argIDs))
-// 		args = append(args, *input.Title)
-// 		argIDs++
-// 	}
+	updateString := strings.Join(setValues, " ,")
+	queryString := fmt.Sprintf("UPDATE %s t SET %s WHERE id = $%d", songTable, updateString, argIDs)
+	args = append(args, songID)
 
-// 	if input.Msg != nil {
-// 		setValues = append(setValues, fmt.Sprintf("msg=$%d", argIDs))
-// 		args = append(args, *input.Msg)
-// 		argIDs++
-// 	}
+	logrus.Debugf("updateQuery: %s", queryString)
+	logrus.Debugf("args: %s", args)
 
-// 	if input.RemindDate != nil {
-// 		setValues = append(setValues, fmt.Sprintf("remind_date=$%d", argIDs))
-// 		args = append(args, *input.RemindDate)
-// 		argIDs++
-// 	}
+	_, err := r.db.Exec(queryString, args...)
 
-// 	updateString := strings.Join(setValues, " ,")
-// 	queryString := fmt.Sprintf("UPDATE %s t SET %s WHERE id = $%d AND user_id=$%d", remindTable, updateString, argIDs, argIDs+1)
-// 	args = append(args, remindID, userID)
-
-// 	logrus.Debugf("updateQuery: %s", queryString)
-// 	logrus.Debugf("args: %s", args)
-
-// 	_, err := r.db.Exec(queryString, args...)
-
-// 	return err
-// }
+	return err
+}
