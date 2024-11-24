@@ -64,3 +64,40 @@ func (h *Handler) getSongsList(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, response)
 }
+
+func (h *Handler) getSongText(ctx *gin.Context) {
+	songId, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		newErrorResponce(ctx, http.StatusBadRequest, "bad id in request")
+		return
+	}
+
+	input := domain.PaginatedSongTextInput{
+		SongId:   songId,
+		Page:     0,
+		PageSize: 0,
+	}
+
+	page, err := strconv.Atoi(ctx.DefaultQuery("page", "1"))
+	if err != nil || page < 1 {
+		page = 1
+	}
+
+	pageSize, err := strconv.Atoi(ctx.DefaultQuery("page_size", "5"))
+	if err != nil || pageSize < 1 {
+		pageSize = 5
+	}
+	logrus.Debug("pageSize=", pageSize, " page=", page)
+	input.Page = page
+	input.PageSize = pageSize
+
+	songText, err := h.services.Song.GetSongText(input)
+	if err != nil {
+		newErrorResponce(ctx, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	response := songText
+
+	ctx.JSON(http.StatusOK, response)
+}

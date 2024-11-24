@@ -21,6 +21,10 @@ func (r *SongService) GetSongsList(s domain.PaginatedSongInput) ([]domain.SongOu
 	return r.repo.GetSongsList(s)
 }
 
+func (r *SongService) GetSongText(s domain.PaginatedSongTextInput) (domain.PaginatedSongTextResponse, error) {
+	return r.repo.GetSongText(s)
+}
+
 // func (r *RemindService) GetByID(userID int, remindID int) (domain.Remind, error) {
 // 	return r.repo.GetByID(userID, remindID)
 // }

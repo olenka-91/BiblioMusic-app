@@ -5,12 +5,12 @@ import (
 )
 
 type Song struct {
-	ID          int64  `json:"id"`
-	GroupID     int64  `json:"group_id"`
-	Title       string `json:"title"`
-	Text        string `json:"text"`
-	ReleaseDate string `json:"release_date"`
-	Link        string `json:"link"`
+	ID           int64  `json:"id"`
+	Group_ID     int64  `json:"group_id"`
+	Title        string `json:"title"`
+	Text         string `json:"text"`
+	Release_Date string `json:"release_date"`
+	Link         string `json:"link"`
 }
 
 type SongOutput struct {
@@ -61,4 +61,18 @@ type PaginatedSongInput struct {
 	Link        string `json:"link"`
 	Page        int    `json:"page"`
 	PageSize    int    `json:"page_size"`
+}
+
+type PaginatedSongTextInput struct {
+	SongId   int `json:"id"`
+	Page     int `json:"page"`
+	PageSize int `json:"page_size"`
+}
+
+type PaginatedSongTextResponse struct {
+	Title       string   `json:"title"`
+	Verses      []string `json:"verses"`
+	Page        int      `json:"page"`
+	PageSize    int      `json:"page_size"`
+	TotalVerses int      `json:"total_verses"`
 }

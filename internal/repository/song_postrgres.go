@@ -1,7 +1,9 @@
 package repository
 
 import (
+	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/olenka-91/BIBLIOMUSIC-APP/internal/domain"
@@ -43,8 +45,6 @@ func (r *SongPostgres) Create(s domain.SongList) (int, error) {
 
 func (r *SongPostgres) GetSongsList(s domain.PaginatedSongInput) ([]domain.SongOutput, error) {
 	offset := (s.Page - 1) * s.PageSize
-	//	queryString := fmt.Sprintf("SELECT %s.name as group_name, title, release_date as , text, link FROM %s INNER JOIN %s ON %s.id=%s.group_id WHERE group_name LIKE $1 AND title LIKE $2 LIMIT $3 OFFSET $4",
-	//	groupTable, songTable, groupTable, groupTable, songTable)
 
 	queryString := fmt.Sprintf(`SELECT %s.name as GroupName, title, release_date as ReleaseDate, text, link FROM %s 
 								INNER JOIN %s ON %s.id=%s.group_id
@@ -58,11 +58,6 @@ func (r *SongPostgres) GetSongsList(s domain.PaginatedSongInput) ([]domain.SongO
 
 	logrus.Debug("queryString=", queryString, "%"+s.GroupName+"%", "%"+s.Title+"%", s.PageSize, "offset=", offset)
 
-	//err := r.db.Select(&songs, queryString, "%"+s.GroupName+"%", "%"+s.Title+"%", s.PageSize, offset)
-	//err := r.db.Select(&songs, queryString)
-	//if err != nil {
-	//	return nil, err
-	//}
 	rows, err := r.db.Query(queryString,
 		"%"+s.GroupName+"%",
 		"%"+s.Title+"%",
@@ -87,6 +82,40 @@ func (r *SongPostgres) GetSongsList(s domain.PaginatedSongInput) ([]domain.SongO
 	}
 
 	return songs, nil
+}
+
+func (r *SongPostgres) GetSongText(s domain.PaginatedSongTextInput) (domain.PaginatedSongTextResponse, error) {
+
+	queryString := fmt.Sprintf("SELECT * FROM %s WHERE id=$1", songTable)
+
+	var song domain.Song
+	err := r.db.Get(&song, queryString, s.SongId)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return domain.PaginatedSongTextResponse{}, fmt.Errorf("song not found")
+		}
+		return domain.PaginatedSongTextResponse{}, err
+	}
+
+	verses := strings.Split(song.Text, "\\n\\n")
+
+	offset := (s.Page - 1) * s.PageSize
+	end := offset + s.PageSize
+	if end > len(verses) {
+		end = len(verses)
+	}
+
+	paginatedVerses := verses[offset:end]
+
+	response := domain.PaginatedSongTextResponse{
+		Title:       song.Title,
+		Verses:      paginatedVerses,
+		Page:        s.Page,
+		PageSize:    s.PageSize,
+		TotalVerses: len(verses),
+	}
+
+	return response, nil
 }
 
 // func (r *RemindPostgres) GetByID(userID int, remindID int) (domain.Remind, error) {

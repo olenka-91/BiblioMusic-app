@@ -8,6 +8,7 @@ import (
 type Song interface {
 	Create(s domain.SongList) (int, error)
 	GetSongsList(domain.PaginatedSongInput) ([]domain.SongOutput, error)
+	GetSongText(domain.PaginatedSongTextInput) (domain.PaginatedSongTextResponse, error)
 	//GetByID(userID int, remindID int) (domain.Remind, error)
 	//GetAll(userID int) ([]domain.Remind, error)
 	//Delete(userID, remindID int) error
