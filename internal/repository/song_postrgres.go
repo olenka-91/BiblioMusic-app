@@ -45,7 +45,6 @@ func (r *SongPostgres) Create(s domain.SongList) (int, error) {
 		return 0, err
 	}
 
-	logrus.Debug("Row inserted successfully with id=", SongId)
 	return SongId, tx.Commit()
 }
 
@@ -135,14 +134,15 @@ func (r *SongPostgres) GetSongText(s domain.PaginatedSongTextInput) (domain.Pagi
 }
 
 func (r *SongPostgres) Delete(songID int) error {
-	queryString := fmt.Sprintf("DELETE FROM %s t WHERE t.id=$1", songTable)
+	queryString := fmt.Sprintf("DELETE FROM %s t WHERE t.id=$1 RETURNING id", songTable)
 	logrus.Debug("queryString=", queryString)
 	logrus.Debug("songID=", songID)
-	_, err := r.db.Exec(queryString, songID)
-	if err == nil {
-		logrus.Debugf("The song with id=%d deleted successfully", songID)
+	var deletedID int
+	err := r.db.QueryRow(queryString, songID).Scan(&deletedID)
+	if err == sql.ErrNoRows {
+		logrus.Warnf("No song with id=%d found to delete", songID)
 	} else {
-		logrus.Errorf("The song with id=%d not deleted", songID)
+		logrus.Errorf("Failed to delete song with id=%d: %v", songID, err)
 	}
 
 	return err
@@ -185,9 +185,7 @@ func (r *SongPostgres) Update(songID int, input domain.SongUpdateInput) error {
 	logrus.Debugf("args: %s", args)
 
 	_, err := r.db.Exec(queryString, args...)
-	if err == nil {
-		logrus.Debugf("The song with id=%d updated successfully", songID)
-	} else {
+	if err != nil {
 		logrus.Errorf("The song with id=%d not updated", songID)
 	}
 

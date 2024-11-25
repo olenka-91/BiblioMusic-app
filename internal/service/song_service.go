@@ -22,11 +22,12 @@ func NewSongService(r repository.Song) *SongService {
 }
 
 func (r *SongService) Create(s domain.SongList) (int, error) {
+	log.Debugf("Creating song with input: %+v", s)
 	return r.repo.Create(s)
 }
 
 func (r *SongService) GetSongsList(s domain.PaginatedSongInput, page, pageSize string) ([]domain.SongOutput, error) {
-	log.Debug("Fetching list of songs with pagination")
+	log.Debugf("Fetching list of songs with pagination: %+v", s)
 	iPage, err := strconv.Atoi(page)
 	if err != nil || iPage < 1 {
 		log.Warn("Invalid page number, defaulting to page ", defPage)
@@ -46,7 +47,7 @@ func (r *SongService) GetSongsList(s domain.PaginatedSongInput, page, pageSize s
 }
 
 func (r *SongService) GetSongText(s domain.PaginatedSongTextInput, page, pageSize string) (domain.PaginatedSongTextResponse, error) {
-	log.Debug("Fetching song text with pagination")
+	log.Debugf("Fetching song text with pagination: %+v", s)
 	iPage, err := strconv.Atoi(page)
 	if err != nil || iPage < 1 {
 		log.Warn("Invalid page number, defaulting to page ", defPage)
@@ -66,10 +67,12 @@ func (r *SongService) GetSongText(s domain.PaginatedSongTextInput, page, pageSiz
 }
 
 func (r *SongService) Delete(songID int) error {
+	log.Debugf("Deleting song with ID: %d", songID)
 	return r.repo.Delete(songID)
 }
 
 func (r *SongService) Update(songID int, input domain.SongUpdateInput) error {
+	log.Debugf("Updating song with ID: %d and input: %+v", songID, input)
 	if err := input.Validate(); err != nil {
 		log.Warn("Empty input data for song update")
 		return err

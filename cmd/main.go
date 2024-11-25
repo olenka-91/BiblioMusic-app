@@ -23,6 +23,18 @@ func init() {
 	log.SetLevel(log.DebugLevel)
 }
 
+// gin-swagger middleware
+// swagger embed files
+
+// @title BiblioMusic App API
+// @version 1.0
+// @description API сервер для приложения BiblioMusic
+
+// @host localhost:8000
+// @BasePath /
+
+// @externalDocs.description  OpenAPI
+// @externalDocs.url          https://swagger.io/resources/open-api/
 func main() {
 	log.Info("Loading environment variables...")
 	if err := godotenv.Load(); err != nil {

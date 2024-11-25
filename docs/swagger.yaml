@@ -1,0 +1,270 @@
+basePath: /
+definitions:
+  domain.PaginatedSongResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/domain.SongOutput'
+        type: array
+      page:
+        type: integer
+      page_size:
+        type: integer
+      total_count:
+        type: integer
+    type: object
+  domain.PaginatedSongTextResponse:
+    properties:
+      page:
+        type: integer
+      page_size:
+        type: integer
+      title:
+        type: string
+      total_verses:
+        type: integer
+      verses:
+        items:
+          type: string
+        type: array
+    type: object
+  domain.SongList:
+    properties:
+      group:
+        type: string
+      song:
+        type: string
+    type: object
+  domain.SongOutput:
+    properties:
+      group_name:
+        type: string
+      link:
+        type: string
+      release_date:
+        type: string
+      text:
+        type: string
+      title:
+        type: string
+    type: object
+  domain.SongUpdateInput:
+    properties:
+      link:
+        type: string
+      release_date:
+        type: string
+      text:
+        type: string
+      title:
+        type: string
+    type: object
+  handler.ErrorResponce:
+    properties:
+      message:
+        type: string
+    type: object
+  handler.Response:
+    properties:
+      id:
+        type: integer
+    type: object
+  handler.StatusResponce:
+    properties:
+      status:
+        type: string
+    type: object
+externalDocs:
+  description: OpenAPI
+  url: https://swagger.io/resources/open-api/
+host: localhost:8000
+info:
+  contact: {}
+  description: API сервер для приложения BiblioMusic
+  title: BiblioMusic App API
+  version: "1.0"
+paths:
+  /info:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a list of songs with optional filters (group, song, text,
+        release_date, link) and pagination.
+      parameters:
+      - description: Group name
+        in: query
+        name: group
+        type: string
+      - description: Song title
+        in: query
+        name: song
+        type: string
+      - description: Song text
+        in: query
+        name: text
+        type: string
+      - description: Release date
+        in: query
+        name: release_date
+        type: string
+      - description: Song link
+        in: query
+        name: link
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 5
+        description: Number of items per page
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of songs
+          schema:
+            $ref: '#/definitions/domain.PaginatedSongResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponce'
+      summary: Get a list of songs
+      tags:
+      - songs
+  /song:
+    post:
+      consumes:
+      - application/json
+      description: Create a new song in the database
+      parameters:
+      - description: Song data
+        in: body
+        name: song
+        required: true
+        schema:
+          $ref: '#/definitions/domain.SongList'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Song created successfully
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "400":
+          description: Invalid input
+          schema:
+            $ref: '#/definitions/handler.ErrorResponce'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponce'
+      summary: Create a song
+      tags:
+      - songs
+  /songs/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an existing song from the database by its ID
+      parameters:
+      - description: Song ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully deleted song
+          schema:
+            $ref: '#/definitions/handler.StatusResponce'
+        "400":
+          description: Invalid song ID
+          schema:
+            $ref: '#/definitions/handler.ErrorResponce'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponce'
+      summary: Delete a song by ID
+      tags:
+      - songs
+    patch:
+      consumes:
+      - application/json
+      description: Update the details of an existing song by its ID
+      parameters:
+      - description: Song ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Updated song data
+        in: body
+        name: song
+        required: true
+        schema:
+          $ref: '#/definitions/domain.SongUpdateInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Song updated successfully
+          schema:
+            $ref: '#/definitions/handler.StatusResponce'
+        "400":
+          description: Invalid input
+          schema:
+            $ref: '#/definitions/handler.ErrorResponce'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponce'
+      summary: Update a song by ID
+      tags:
+      - songs
+  /songs/{id}/text:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve the text of a song by its ID with pagination support.
+      parameters:
+      - description: Song ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 5
+        description: Number of items per page
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Song text data
+          schema:
+            $ref: '#/definitions/domain.PaginatedSongTextResponse'
+        "400":
+          description: Invalid song ID
+          schema:
+            $ref: '#/definitions/handler.ErrorResponce'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponce'
+      summary: Get text of a song
+      tags:
+      - songs
+swagger: "2.0"

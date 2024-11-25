@@ -3,6 +3,10 @@ package handler
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/olenka-91/BIBLIOMUSIC-APP/internal/service"
+	swaggerFiles "github.com/swaggo/files"     // swagger embed files
+	ginSwagger "github.com/swaggo/gin-swagger" // gin-swagger middleware
+
+	_ "github.com/olenka-91/BIBLIOMUSIC-APP/docs"
 )
 
 type Handler struct {
@@ -21,6 +25,8 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	router.GET("/songs/:id/text", h.getSongText)
 	router.PATCH("/songs/:id", h.updateSong)
 	router.DELETE("/songs/:id", h.deleteSong)
+
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	return router
 
