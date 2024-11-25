@@ -25,6 +25,8 @@ func (r *SongPostgres) Create(s domain.SongList) (int, error) {
 	}
 
 	queryString := fmt.Sprintf("INSERT INTO %s (name) VALUES ($1) RETURNING id", groupTable)
+	logrus.Debug("queryString=", queryString)
+	logrus.Debug("s.Group=", s.Group)
 	row := tx.QueryRow(queryString, s.Group)
 	var GroupId int
 	if err := row.Scan(&GroupId); err != nil {
@@ -32,7 +34,10 @@ func (r *SongPostgres) Create(s domain.SongList) (int, error) {
 		return 0, err
 	}
 
+	logrus.Debug("GroupId=", GroupId)
 	queryString = fmt.Sprintf("INSERT INTO %s (group_id, title) VALUES ($1,$2) RETURNING id", songTable)
+	logrus.Debug("queryString=", queryString)
+	logrus.Debug("s.Song=", s.Song)
 	row = tx.QueryRow(queryString, GroupId, s.Song)
 	var SongId int
 	if err := row.Scan(&SongId); err != nil {
@@ -40,6 +45,7 @@ func (r *SongPostgres) Create(s domain.SongList) (int, error) {
 		return 0, err
 	}
 
+	logrus.Debug("Row inserted successfully with id=", SongId)
 	return SongId, tx.Commit()
 }
 
@@ -56,7 +62,14 @@ func (r *SongPostgres) GetSongsList(s domain.PaginatedSongInput) ([]domain.SongO
 								LIMIT $6 OFFSET $7`,
 		groupTable, songTable, groupTable, groupTable, songTable, groupTable)
 
-	logrus.Debug("queryString=", queryString, "%"+s.GroupName+"%", "%"+s.Title+"%", s.PageSize, "offset=", offset)
+	logrus.Debug("queryString=", queryString)
+	logrus.Debug("s.GroupName=", s.GroupName)
+	logrus.Debug("s.Title=", s.Title)
+	logrus.Debug("s.ReleaseDate=", s.ReleaseDate)
+	logrus.Debug("s.Text=", s.Text)
+	logrus.Debug("s.Link=", s.Link)
+	logrus.Debug("s.PageSize=", s.PageSize)
+	logrus.Debug("offset=", offset)
 
 	rows, err := r.db.Query(queryString,
 		"%"+s.GroupName+"%",
@@ -81,13 +94,15 @@ func (r *SongPostgres) GetSongsList(s domain.PaginatedSongInput) ([]domain.SongO
 		songs = append(songs, s)
 	}
 
+	logrus.Debug("songs count=", len(songs))
 	return songs, nil
 }
 
 func (r *SongPostgres) GetSongText(s domain.PaginatedSongTextInput) (domain.PaginatedSongTextResponse, error) {
 
 	queryString := fmt.Sprintf("SELECT * FROM %s WHERE id=$1", songTable)
-
+	logrus.Debug("queryString=", queryString)
+	logrus.Debug("s.SongId=", s.SongId)
 	var song domain.Song
 	err := r.db.Get(&song, queryString, s.SongId)
 	if err != nil {
@@ -98,6 +113,7 @@ func (r *SongPostgres) GetSongText(s domain.PaginatedSongTextInput) (domain.Pagi
 	}
 
 	verses := strings.Split(song.Text, "\\n\\n")
+	logrus.Debug("len(verses)=", len(verses))
 
 	offset := (s.Page - 1) * s.PageSize
 	end := offset + s.PageSize
@@ -106,7 +122,7 @@ func (r *SongPostgres) GetSongText(s domain.PaginatedSongTextInput) (domain.Pagi
 	}
 
 	paginatedVerses := verses[offset:end]
-
+	logrus.Debug("len(paginatedVerses)=", len(paginatedVerses))
 	response := domain.PaginatedSongTextResponse{
 		Title:       song.Title,
 		Verses:      paginatedVerses,
@@ -120,7 +136,15 @@ func (r *SongPostgres) GetSongText(s domain.PaginatedSongTextInput) (domain.Pagi
 
 func (r *SongPostgres) Delete(songID int) error {
 	queryString := fmt.Sprintf("DELETE FROM %s t WHERE t.id=$1", songTable)
+	logrus.Debug("queryString=", queryString)
+	logrus.Debug("songID=", songID)
 	_, err := r.db.Exec(queryString, songID)
+	if err == nil {
+		logrus.Debugf("The song with id=%d deleted successfully", songID)
+	} else {
+		logrus.Errorf("The song with id=%d not deleted", songID)
+	}
+
 	return err
 }
 
@@ -161,6 +185,11 @@ func (r *SongPostgres) Update(songID int, input domain.SongUpdateInput) error {
 	logrus.Debugf("args: %s", args)
 
 	_, err := r.db.Exec(queryString, args...)
+	if err == nil {
+		logrus.Debugf("The song with id=%d updated successfully", songID)
+	} else {
+		logrus.Errorf("The song with id=%d not updated", songID)
+	}
 
 	return err
 }

@@ -10,96 +10,107 @@ import (
 )
 
 func (h *Handler) createSong(ctx *gin.Context) {
+	logrus.Debug("Entering createSong handler")
 	var input domain.SongList
 	if err := ctx.BindJSON(&input); err != nil {
-		newErrorResponce(ctx, http.StatusBadRequest, "Bad request")
+		logrus.Warnf("Failed to bind JSON in createSong: %v", err)
+		newErrorResponce(ctx, http.StatusBadRequest, "Bad request", err.Error())
 		return
 	}
 
+	logrus.Infof("Creating song with input: %+v", input)
 	id, err := h.services.Song.Create(input)
 	if err != nil {
-		newErrorResponce(ctx, http.StatusInternalServerError, err.Error()) //"Internal server error")
+		logrus.Errorf("Failed to create song: %v", err)
+		newErrorResponce(ctx, http.StatusInternalServerError, "Internal server error", err.Error())
 		return
 	}
 
+	logrus.Infof("Successfully created song with ID: %d", id)
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"id": id,
 	})
 }
+
 func (h *Handler) deleteSong(ctx *gin.Context) {
 	songId, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		newErrorResponce(ctx, http.StatusBadRequest, "Bad request")
+		logrus.Warnf("Failed to convert song ID to integer: %v", err)
+		newErrorResponce(ctx, http.StatusBadRequest, "Bad request", err.Error())
 		return
 	}
 
+	logrus.Infof("Deleting song with ID: %d", songId)
 	err = h.services.Song.Delete(songId)
 	if err != nil {
-		newErrorResponce(ctx, http.StatusInternalServerError, err.Error()) //"Internal server error")
+		logrus.Errorf("Failed to delete song with ID %d: %v", songId, err)
+		newErrorResponce(ctx, http.StatusInternalServerError, "Internal server error", err.Error())
 		return
 	}
+
+	logrus.Infof("Successfully deleted song with ID: %d", songId)
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"Status": "OK",
 	})
 }
+
 func (h *Handler) updateSong(ctx *gin.Context) {
 	songId, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		newErrorResponce(ctx, http.StatusBadRequest, "Bad request")
+		logrus.Warnf("Failed to convert song ID to integer: %v", err)
+		newErrorResponce(ctx, http.StatusBadRequest, "Bad request", err.Error())
 		return
 	}
+
 	var input domain.SongUpdateInput
 	if err := ctx.BindJSON(&input); err != nil {
-		newErrorResponce(ctx, http.StatusBadRequest, "Bad request")
+		logrus.Warnf("Failed to bind JSON in updateSong: %v", err)
+		newErrorResponce(ctx, http.StatusBadRequest, "Bad request", err.Error())
 		return
 	}
 
+	logrus.Infof("Updating song with ID: %d", songId)
 	err = h.services.Song.Update(songId, input)
 	if err != nil {
-		newErrorResponce(ctx, http.StatusInternalServerError, err.Error()) //"Internal server error")
+		logrus.Errorf("Failed to update song with ID %d: %v", songId, err)
+		newErrorResponce(ctx, http.StatusInternalServerError, "Internal server error", err.Error())
 		return
 	}
 
+	logrus.Infof("Successfully updated song with ID: %d", songId)
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"Status": "OK",
 	})
 }
 
 func (h *Handler) getSongsList(ctx *gin.Context) {
+	logrus.Debug("Entering getSongsList handler")
+
 	input := domain.PaginatedSongInput{
 		GroupName:   ctx.DefaultQuery("group", ""),
 		Title:       ctx.DefaultQuery("song", ""),
 		Text:        ctx.DefaultQuery("text", ""),
 		ReleaseDate: ctx.DefaultQuery("release_date", ""),
 		Link:        ctx.DefaultQuery("link", ""),
-		Page:        0,
-		PageSize:    0,
 	}
 
-	page, err := strconv.Atoi(ctx.DefaultQuery("page", "1"))
-	if err != nil || page < 1 {
-		page = 1
-	}
+	page := ctx.DefaultQuery("page", "1")
+	pageSize := ctx.DefaultQuery("page_size", "5")
 
-	pageSize, err := strconv.Atoi(ctx.DefaultQuery("page_size", "5"))
-	if err != nil || pageSize < 1 {
-		pageSize = 5
-	}
-	logrus.Debug("pageSize=", pageSize, " page=", page)
-	input.Page = page
-	input.PageSize = pageSize
-
-	filteredSongs, err := h.services.Song.GetSongsList(input)
+	logrus.Infof("Fetching songs list with filters: %+v, page: %s, page size: %s", input, page, pageSize)
+	filteredSongs, err := h.services.Song.GetSongsList(input, page, pageSize)
 	if err != nil {
-		newErrorResponce(ctx, http.StatusInternalServerError, err.Error())
+		logrus.Errorf("Failed to fetch songs list: %v", err)
+		newErrorResponce(ctx, http.StatusInternalServerError, "Internal server error", err.Error())
 		return
 	}
 
+	logrus.Infof("Successfully fetched %d songs", len(filteredSongs))
 	response := domain.PaginatedSongResponse{
 		Data:       filteredSongs,
 		TotalCount: len(filteredSongs),
-		Page:       page,
-		PageSize:   pageSize,
+		Page:       input.Page,
+		PageSize:   input.PageSize,
 	}
 
 	ctx.JSON(http.StatusOK, response)
@@ -108,36 +119,28 @@ func (h *Handler) getSongsList(ctx *gin.Context) {
 func (h *Handler) getSongText(ctx *gin.Context) {
 	songId, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		newErrorResponce(ctx, http.StatusBadRequest, "bad id in request")
+		logrus.Warnf("Failed to convert song ID to integer: %v", err)
+		newErrorResponce(ctx, http.StatusBadRequest, "Bad request", err.Error())
 		return
 	}
+
+	logrus.Infof("Fetching song text for song ID: %d", songId)
 
 	input := domain.PaginatedSongTextInput{
-		SongId:   songId,
-		Page:     0,
-		PageSize: 0,
+		SongId: songId,
 	}
 
-	page, err := strconv.Atoi(ctx.DefaultQuery("page", "1"))
-	if err != nil || page < 1 {
-		page = 1
-	}
+	page := ctx.DefaultQuery("page", "1")
+	pageSize := ctx.DefaultQuery("page_size", "5")
 
-	pageSize, err := strconv.Atoi(ctx.DefaultQuery("page_size", "5"))
-	if err != nil || pageSize < 1 {
-		pageSize = 5
-	}
-	logrus.Debug("pageSize=", pageSize, " page=", page)
-	input.Page = page
-	input.PageSize = pageSize
-
-	songText, err := h.services.Song.GetSongText(input)
+	logrus.Infof("Fetching song text with pagination: page=%s, page_size=%s", page, pageSize)
+	songText, err := h.services.Song.GetSongText(input, page, pageSize)
 	if err != nil {
-		newErrorResponce(ctx, http.StatusInternalServerError, err.Error())
+		logrus.Errorf("Failed to fetch song text for song ID %d: %v", songId, err)
+		newErrorResponce(ctx, http.StatusInternalServerError, "Internal server error", err.Error())
 		return
 	}
 
-	response := songText
-
-	ctx.JSON(http.StatusOK, response)
+	logrus.Infof("Successfully fetched song text for song ID: %d", songId)
+	ctx.JSON(http.StatusOK, songText)
 }
