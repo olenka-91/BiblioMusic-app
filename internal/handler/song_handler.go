@@ -1,7 +1,12 @@
 package handler
 
 import (
+	"encoding/json"
+	"errors"
+	"fmt"
+
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -9,27 +14,78 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+func enrichSongData(input domain.AddSongRequest) (domain.SongDetail, error) {
+	baseURL := os.Getenv("EXTERNAL_HTTP_ADDR")
+	if baseURL == "" {
+		logrus.Warnf("Failed to get EXTERNAL_HTTP_ADDR")
+		return domain.SongDetail{}, errors.New("EXTERNAL_HTTP_ADDR is not configured")
+	}
+
+	logrus.Debugf("Get baseURL for EXTERNAL API successfuly %s", baseURL)
+
+	req, err := http.NewRequest("GET", baseURL+"/info", nil)
+	if err != nil {
+		return domain.SongDetail{}, err
+	}
+
+	q := req.URL.Query()
+	q.Add("group", input.Group)
+	q.Add("song", input.Song)
+	req.URL.RawQuery = q.Encode()
+
+	logrus.Debugf("Request for EXTERNAL API is %s", req.URL.RawQuery)
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return domain.SongDetail{}, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return domain.SongDetail{}, fmt.Errorf("external API returned status code %d", resp.StatusCode)
+	}
+
+	var songDetail domain.SongDetail
+	if err := json.NewDecoder(resp.Body).Decode(&songDetail); err != nil {
+		return domain.SongDetail{}, err
+	}
+
+	return songDetail, nil
+}
+
 // CreateSong godoc
-// @Summary Create a song
-// @Description Create a new song in the database
+// @Summary Добавление песни в БД
+// @Description Добавление новой песни в БД с запросом доп информации на сторонний сервер
 // @Tags songs
 // @Accept json
 // @Produce json
-// @Param song body domain.SongList true "Song data"
+// @Param song body domain.AddSongRequest true "Song data"
 // @Success 200 {object} Response "Song created successfully"
 // @Failure 400 {object} ErrorResponce "Invalid input"
 // @Failure 500 {object} ErrorResponce "Internal server error"
 // @Router /song [post]
 func (h *Handler) createSong(ctx *gin.Context) {
 	logrus.Debug("Entering createSong handler")
-	var input domain.SongList
+	var input domain.AddSongRequest
 	if err := ctx.BindJSON(&input); err != nil {
 		logrus.Warnf("Failed to bind JSON in createSong: %v", err)
 		newErrorResponce(ctx, http.StatusBadRequest, "Bad request", err.Error())
 		return
 	}
 
-	id, err := h.services.Song.Create(input)
+	songDetail, err := enrichSongData(input)
+	if err != nil {
+		logrus.Warnf("Failed to bind JSON in createSong: %v", err)
+		newErrorResponce(ctx, http.StatusInternalServerError, "Internal server error", err.Error())
+		return
+	}
+
+	logrus.Infof("Successfully received extra data from EXTERNAL API: Text=%s, ReleaseDate=%s, Link=%s",
+		domain.StringValue(songDetail.Text),
+		domain.StringValue(songDetail.ReleaseDate),
+		domain.StringValue(songDetail.Link))
+
+	id, err := h.services.Song.Create(input, songDetail)
 	if err != nil {
 		logrus.Errorf("Failed to create song: %v", err)
 		newErrorResponce(ctx, http.StatusInternalServerError, "Internal server error", err.Error())
@@ -43,8 +99,8 @@ func (h *Handler) createSong(ctx *gin.Context) {
 }
 
 // DeleteSong godoc
-// @Summary Delete a song by ID
-// @Description Delete an existing song from the database by its ID
+// @Summary Удаление пепсни по ID
+// @Description Удаление записи из таблицы песен БД по ее ID
 // @Tags songs
 // @Accept json
 // @Produce json
@@ -75,8 +131,8 @@ func (h *Handler) deleteSong(ctx *gin.Context) {
 }
 
 // UpdateSong godoc
-// @Summary Update a song by ID
-// @Description Update the details of an existing song by its ID
+// @Summary Обновление песни по ее ID
+// @Description Обновление информации о песне по ее ID
 // @Tags songs
 // @Accept json
 // @Produce json
@@ -115,8 +171,8 @@ func (h *Handler) updateSong(ctx *gin.Context) {
 }
 
 // GetSongsList godoc
-// @Summary Get a list of songs
-// @Description Retrieve a list of songs with optional filters (group, song, text, release_date, link) and pagination.
+// @Summary Получение списка песен
+// @Description Получение списка песен с опциональной фильтрацией результатов по полям: group, song, text, release_date, link и пагинацией.
 // @Tags songs
 // @Accept json
 // @Produce json
@@ -129,7 +185,7 @@ func (h *Handler) updateSong(ctx *gin.Context) {
 // @Param page_size query int false "Number of items per page" default(5)
 // @Success 200 {object} domain.PaginatedSongResponse "List of songs"
 // @Failure 500 {object} ErrorResponce "Internal server error"
-// @Router /info [get]
+// @Router /songs [get]
 func (h *Handler) getSongsList(ctx *gin.Context) {
 	logrus.Debug("Entering getSongsList handler")
 
@@ -164,8 +220,8 @@ func (h *Handler) getSongsList(ctx *gin.Context) {
 }
 
 // GetSongText godoc
-// @Summary Get text of a song
-// @Description Retrieve the text of a song by its ID with pagination support.
+// @Summary Получение текста песни
+// @Description Получение текста песни по ее ID с пагинацией по куплетам
 // @Tags songs
 // @Accept json
 // @Produce json

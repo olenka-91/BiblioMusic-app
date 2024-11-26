@@ -1,10 +1,20 @@
 basePath: /
 definitions:
+  domain.AddSongRequest:
+    properties:
+      group:
+        type: string
+      song:
+        type: string
+    required:
+    - group
+    - song
+    type: object
   domain.PaginatedSongResponse:
     properties:
       data:
         items:
-          $ref: '#/definitions/domain.SongOutput'
+          $ref: '#/definitions/domain.Song'
         type: array
       page:
         type: integer
@@ -28,14 +38,7 @@ definitions:
           type: string
         type: array
     type: object
-  domain.SongList:
-    properties:
-      group:
-        type: string
-      song:
-        type: string
-    type: object
-  domain.SongOutput:
+  domain.Song:
     properties:
       group_name:
         type: string
@@ -84,7 +87,37 @@ info:
   title: BiblioMusic App API
   version: "1.0"
 paths:
-  /info:
+  /song:
+    post:
+      consumes:
+      - application/json
+      description: Create a new song in the database
+      parameters:
+      - description: Song data
+        in: body
+        name: song
+        required: true
+        schema:
+          $ref: '#/definitions/domain.AddSongRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Song created successfully
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "400":
+          description: Invalid input
+          schema:
+            $ref: '#/definitions/handler.ErrorResponce'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponce'
+      summary: Create a song
+      tags:
+      - songs
+  /songs:
     get:
       consumes:
       - application/json
@@ -133,36 +166,6 @@ paths:
           schema:
             $ref: '#/definitions/handler.ErrorResponce'
       summary: Get a list of songs
-      tags:
-      - songs
-  /song:
-    post:
-      consumes:
-      - application/json
-      description: Create a new song in the database
-      parameters:
-      - description: Song data
-        in: body
-        name: song
-        required: true
-        schema:
-          $ref: '#/definitions/domain.SongList'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Song created successfully
-          schema:
-            $ref: '#/definitions/handler.Response'
-        "400":
-          description: Invalid input
-          schema:
-            $ref: '#/definitions/handler.ErrorResponce'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/handler.ErrorResponce'
-      summary: Create a song
       tags:
       - songs
   /songs/{id}:

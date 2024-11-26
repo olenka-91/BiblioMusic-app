@@ -6,8 +6,8 @@ import (
 )
 
 type Song interface {
-	Create(s domain.SongList) (int, error)
-	GetSongsList(s domain.PaginatedSongInput) ([]domain.SongOutput, error)
+	Create(s domain.Song) (int, error)
+	GetSongsList(s domain.PaginatedSongInput) ([]domain.Song, error)
 	GetSongText(s domain.PaginatedSongTextInput) (domain.PaginatedSongTextResponse, error)
 	Delete(songID int) error
 	Update(songID int, input domain.SongUpdateInput) error

@@ -15,7 +15,53 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/info": {
+        "/song": {
+            "post": {
+                "description": "Create a new song in the database",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "songs"
+                ],
+                "summary": "Create a song",
+                "parameters": [
+                    {
+                        "description": "Song data",
+                        "name": "song",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.AddSongRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Song created successfully",
+                        "schema": {
+                            "$ref": "#/definitions/handler.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "schema": {
+                            "$ref": "#/definitions/handler.ErrorResponce"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/handler.ErrorResponce"
+                        }
+                    }
+                }
+            }
+        },
+        "/songs": {
             "get": {
                 "description": "Retrieve a list of songs with optional filters (group, song, text, release_date, link) and pagination.",
                 "consumes": [
@@ -79,52 +125,6 @@ const docTemplate = `{
                         "description": "List of songs",
                         "schema": {
                             "$ref": "#/definitions/domain.PaginatedSongResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/handler.ErrorResponce"
-                        }
-                    }
-                }
-            }
-        },
-        "/song": {
-            "post": {
-                "description": "Create a new song in the database",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "songs"
-                ],
-                "summary": "Create a song",
-                "parameters": [
-                    {
-                        "description": "Song data",
-                        "name": "song",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/domain.SongList"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Song created successfully",
-                        "schema": {
-                            "$ref": "#/definitions/handler.Response"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid input",
-                        "schema": {
-                            "$ref": "#/definitions/handler.ErrorResponce"
                         }
                     },
                     "500": {
@@ -291,13 +291,28 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "domain.AddSongRequest": {
+            "type": "object",
+            "required": [
+                "group",
+                "song"
+            ],
+            "properties": {
+                "group": {
+                    "type": "string"
+                },
+                "song": {
+                    "type": "string"
+                }
+            }
+        },
         "domain.PaginatedSongResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/domain.SongOutput"
+                        "$ref": "#/definitions/domain.Song"
                     }
                 },
                 "page": {
@@ -334,18 +349,7 @@ const docTemplate = `{
                 }
             }
         },
-        "domain.SongList": {
-            "type": "object",
-            "properties": {
-                "group": {
-                    "type": "string"
-                },
-                "song": {
-                    "type": "string"
-                }
-            }
-        },
-        "domain.SongOutput": {
+        "domain.Song": {
             "type": "object",
             "properties": {
                 "group_name": {
@@ -423,7 +427,7 @@ var SwaggerInfo = &swag.Spec{
 	Description:      "API сервер для приложения BiblioMusic",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
-	
+
 }
 
 func init() {

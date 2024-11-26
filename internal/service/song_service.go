@@ -21,12 +21,18 @@ func NewSongService(r repository.Song) *SongService {
 	return &SongService{repo: r}
 }
 
-func (r *SongService) Create(s domain.SongList) (int, error) {
-	log.Debugf("Creating song with input: %+v", s)
+func (r *SongService) Create(req domain.AddSongRequest, detail domain.SongDetail) (int, error) {
+	log.Debugf("Creating song...")
+	s := domain.Song{
+		GroupName:   &req.Group,
+		Title:       &req.Song,
+		Text:        detail.Text,
+		ReleaseDate: detail.ReleaseDate,
+		Link:        detail.Link}
 	return r.repo.Create(s)
 }
 
-func (r *SongService) GetSongsList(s domain.PaginatedSongInput, page, pageSize string) ([]domain.SongOutput, error) {
+func (r *SongService) GetSongsList(s domain.PaginatedSongInput, page, pageSize string) ([]domain.Song, error) {
 	log.Debugf("Fetching list of songs with pagination: %+v", s)
 	iPage, err := strconv.Atoi(page)
 	if err != nil || iPage < 1 {
@@ -72,7 +78,7 @@ func (r *SongService) Delete(songID int) error {
 }
 
 func (r *SongService) Update(songID int, input domain.SongUpdateInput) error {
-	log.Debugf("Updating song with ID: %d and input: %+v", songID, input)
+	log.Debugf("Updating song with ID: %d ...", songID)
 	if err := input.Validate(); err != nil {
 		log.Warn("Empty input data for song update")
 		return err

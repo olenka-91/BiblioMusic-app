@@ -21,7 +21,7 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	router := gin.New()
 
 	router.POST("/song", h.createSong)
-	router.GET("/info", h.getSongsList)
+	router.GET("/songs", h.getSongsList)
 	router.GET("/songs/:id/text", h.getSongText)
 	router.PATCH("/songs/:id", h.updateSong)
 	router.DELETE("/songs/:id", h.deleteSong)

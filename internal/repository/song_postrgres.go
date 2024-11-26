@@ -18,27 +18,43 @@ func NewSongPostgres(db *sqlx.DB) *SongPostgres {
 	return &SongPostgres{db: db}
 }
 
-func (r *SongPostgres) Create(s domain.SongList) (int, error) {
+func (r *SongPostgres) Create(s domain.Song) (int, error) {
 	tx, err := r.db.Begin()
 	if err != nil {
 		return 0, err
 	}
 
-	queryString := fmt.Sprintf("INSERT INTO %s (name) VALUES ($1) RETURNING id", groupTable)
-	logrus.Debug("queryString=", queryString)
-	logrus.Debug("s.Group=", s.Group)
-	row := tx.QueryRow(queryString, s.Group)
+	queryString := fmt.Sprintf("SELECT id FROM %s WHERE %s.name=$1", groupTable, groupTable)
 	var GroupId int
+	row := tx.QueryRow(queryString, s.GroupName)
 	if err := row.Scan(&GroupId); err != nil {
-		tx.Rollback()
-		return 0, err
+		if err == sql.ErrNoRows {
+			//если нет записи с такой группой-добавляем
+			queryString = fmt.Sprintf("INSERT INTO %s (name) VALUES ($1) RETURNING id", groupTable)
+			logrus.Debug("queryString=", queryString)
+			logrus.Debug("s.Group=", s.GroupName)
+			row = tx.QueryRow(queryString, s.GroupName)
+
+			if err := row.Scan(&GroupId); err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+		} else {
+			tx.Rollback()
+			return 0, err
+		}
 	}
 
 	logrus.Debug("GroupId=", GroupId)
-	queryString = fmt.Sprintf("INSERT INTO %s (group_id, title) VALUES ($1,$2) RETURNING id", songTable)
+	queryString = fmt.Sprintf("INSERT INTO %s (group_id, title, text, release_date, link) VALUES ($1, $2, $3, $4, $5) RETURNING id", songTable)
 	logrus.Debug("queryString=", queryString)
-	logrus.Debug("s.Song=", s.Song)
-	row = tx.QueryRow(queryString, GroupId, s.Song)
+	logrus.Debug("s.Song=", domain.StringValue(s.Title))
+	logrus.Debug("GroupId=", GroupId)
+	logrus.Debug("s.Text=", domain.StringValue(s.Text))
+	logrus.Debug("s.ReleaseDate=", domain.StringValue(s.ReleaseDate))
+	logrus.Debug("s.Link=", domain.StringValue(s.Link))
+
+	row = tx.QueryRow(queryString, GroupId, s.Title, s.Text, s.ReleaseDate, s.Link)
 	var SongId int
 	if err := row.Scan(&SongId); err != nil {
 		tx.Rollback()
@@ -46,46 +62,65 @@ func (r *SongPostgres) Create(s domain.SongList) (int, error) {
 	}
 
 	return SongId, tx.Commit()
+
 }
 
-func (r *SongPostgres) GetSongsList(s domain.PaginatedSongInput) ([]domain.SongOutput, error) {
+func (r *SongPostgres) GetSongsList(s domain.PaginatedSongInput) ([]domain.Song, error) {
 	offset := (s.Page - 1) * s.PageSize
 
 	queryString := fmt.Sprintf(`SELECT %s.name as GroupName, title, release_date as ReleaseDate, text, link FROM %s 
 								INNER JOIN %s ON %s.id=%s.group_id
-								WHERE %s.name LIKE $1 
-								AND title LIKE $2
-								AND release_date LIKE $3
-								AND text LIKE $4
-								AND link LIKE $5
-								LIMIT $6 OFFSET $7`,
-		groupTable, songTable, groupTable, groupTable, songTable, groupTable)
+								WHERE 1=1`,
+		groupTable, songTable, groupTable, groupTable, songTable)
+
+	args := make([]interface{}, 0)
+	argCount := 1
+
+	if s.GroupName != "" {
+		queryString += fmt.Sprintf(" AND %s.name LIKE $%d", groupTable, argCount)
+		args = append(args, "%"+s.GroupName+"%")
+		argCount++
+	}
+
+	if s.Title != "" {
+		queryString += fmt.Sprintf(" AND title LIKE $%d", argCount)
+		args = append(args, "%"+s.Title+"%")
+		argCount++
+	}
+
+	if s.ReleaseDate != "" {
+		queryString += fmt.Sprintf(" AND release_date LIKE $%d", argCount)
+		args = append(args, "%"+s.ReleaseDate+"%")
+		argCount++
+	}
+
+	if s.Text != "" {
+		queryString += fmt.Sprintf(" AND text LIKE $%d", argCount)
+		args = append(args, "%"+s.Text+"%")
+		argCount++
+	}
+
+	if s.Link != "" {
+		queryString += fmt.Sprintf(" AND link LIKE $%d", argCount)
+		args = append(args, "%"+s.Link+"%")
+		argCount++
+	}
+
+	queryString += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argCount, argCount+1)
+	args = append(args, s.PageSize, offset)
 
 	logrus.Debug("queryString=", queryString)
-	logrus.Debug("s.GroupName=", s.GroupName)
-	logrus.Debug("s.Title=", s.Title)
-	logrus.Debug("s.ReleaseDate=", s.ReleaseDate)
-	logrus.Debug("s.Text=", s.Text)
-	logrus.Debug("s.Link=", s.Link)
-	logrus.Debug("s.PageSize=", s.PageSize)
-	logrus.Debug("offset=", offset)
+	logrus.Debug("args=", args)
 
-	rows, err := r.db.Query(queryString,
-		"%"+s.GroupName+"%",
-		"%"+s.Title+"%",
-		"%"+s.ReleaseDate+"%",
-		"%"+s.Text+"%",
-		"%"+s.Link+"%",
-		s.PageSize,
-		offset)
+	rows, err := r.db.Query(queryString, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var songs []domain.SongOutput
+	var songs []domain.Song
 	for rows.Next() {
-		var s domain.SongOutput
+		var s domain.Song
 		if err := rows.Scan(&s.GroupName, &s.Title, &s.ReleaseDate, &s.Text, &s.Link); err != nil {
 			logrus.Println("Error scanning row:", err)
 			continue
@@ -102,7 +137,7 @@ func (r *SongPostgres) GetSongText(s domain.PaginatedSongTextInput) (domain.Pagi
 	queryString := fmt.Sprintf("SELECT * FROM %s WHERE id=$1", songTable)
 	logrus.Debug("queryString=", queryString)
 	logrus.Debug("s.SongId=", s.SongId)
-	var song domain.Song
+	var song domain.SongDB
 	err := r.db.Get(&song, queryString, s.SongId)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -139,10 +174,12 @@ func (r *SongPostgres) Delete(songID int) error {
 	logrus.Debug("songID=", songID)
 	var deletedID int
 	err := r.db.QueryRow(queryString, songID).Scan(&deletedID)
-	if err == sql.ErrNoRows {
-		logrus.Warnf("No song with id=%d found to delete", songID)
-	} else {
-		logrus.Errorf("Failed to delete song with id=%d: %v", songID, err)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			logrus.Warnf("No song with id=%d found to delete", songID)
+		} else {
+			logrus.Errorf("Failed to delete song with id=%d: %v", songID, err)
+		}
 	}
 
 	return err

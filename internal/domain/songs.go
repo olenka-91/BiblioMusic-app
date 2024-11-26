@@ -4,7 +4,14 @@ import (
 	"errors"
 )
 
-type Song struct {
+func StringValue(s *string) string {
+	if s == nil {
+		return "nil"
+	}
+	return *s
+}
+
+type SongDB struct {
 	ID           int64  `json:"id"`
 	Group_ID     int64  `json:"group_id"`
 	Title        string `json:"title"`
@@ -13,7 +20,7 @@ type Song struct {
 	Link         string `json:"link"`
 }
 
-type SongOutput struct {
+type Song struct {
 	GroupName   *string `json:"group_name"`
 	Title       *string `json:"title"`
 	Text        *string `json:"text"`
@@ -30,13 +37,13 @@ type SongUpdateInput struct {
 
 type SongDetail struct {
 	Text        *string `json:"text"`
-	ReleaseDate *string `json:"release_date"`
+	ReleaseDate *string `json:"releaseDate"`
 	Link        *string `json:"link"`
 }
 
-type SongList struct {
-	Group string `json:"group"`
-	Song  string `json:"song"`
+type AddSongRequest struct {
+	Group string `json:"group" binding:"required"`
+	Song  string `json:"song" binding:"required"`
 }
 
 func (r *SongUpdateInput) Validate() error {
@@ -47,10 +54,10 @@ func (r *SongUpdateInput) Validate() error {
 }
 
 type PaginatedSongResponse struct {
-	Data       []SongOutput `json:"data"`
-	TotalCount int          `json:"total_count"`
-	Page       int          `json:"page"`
-	PageSize   int          `json:"page_size"`
+	Data       []Song `json:"data"`
+	TotalCount int    `json:"total_count"`
+	Page       int    `json:"page"`
+	PageSize   int    `json:"page_size"`
 }
 
 type PaginatedSongInput struct {
